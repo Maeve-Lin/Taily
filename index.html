@@ -1,0 +1,396 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CatFit Feed | 貓咪營養與控糖管理</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body class="is-food-mode">
+    <header class="app-header">
+      <div>
+        <p class="eyebrow">CatFit Feed</p>
+        <h1>貓咪營養與控糖管理</h1>
+      </div>
+      <nav class="app-tabs" aria-label="主要功能">
+        <button class="app-tab active" type="button" data-app-view="recommender">推薦助手</button>
+        <button class="app-tab" type="button" data-app-view="tracker">控糖紀錄</button>
+      </nav>
+    </header>
+
+    <main id="recommender-view" class="app-view active">
+      <div class="recommender-shell">
+        <section class="planner">
+          <div class="brand-row">
+            <div>
+              <p class="eyebrow">Recommendation</p>
+              <h2>貓咪營養與用品推薦助手</h2>
+            </div>
+            <span class="status-pill">MVP 原型</span>
+          </div>
+
+          <div class="mode-switch" role="tablist" aria-label="選擇推薦功能">
+            <button class="mode-button active" type="button" data-mode="food">找貓飼料</button>
+            <button class="mode-button" type="button" data-mode="product">找保健品 / 用品</button>
+          </div>
+
+          <form id="catForm" class="form-grid">
+            <label>
+              貓咪名字
+              <input id="catName" type="text" placeholder="例如：豆花" value="豆花" />
+            </label>
+
+            <label>
+              年齡階段
+              <select id="lifeStage">
+                <option value="kitten">幼貓，0-12 個月</option>
+                <option value="adult" selected>成貓，1-7 歲</option>
+                <option value="mature">熟齡貓，7-10 歲</option>
+                <option value="senior">老貓，10 歲以上</option>
+              </select>
+            </label>
+
+            <label class="feed-only">
+              體重 kg
+              <input id="weight" type="number" min="0.5" max="12" step="0.1" value="4.5" />
+            </label>
+
+            <label class="feed-only">
+              體態
+              <select id="bodyCondition">
+                <option value="thin">偏瘦</option>
+                <option value="ideal" selected>正常</option>
+                <option value="overweight">過重</option>
+              </select>
+            </label>
+
+            <label class="feed-only">
+              結紮狀態
+              <select id="neutered">
+                <option value="yes" selected>已結紮</option>
+                <option value="no">未結紮</option>
+              </select>
+            </label>
+
+            <label class="feed-only">
+              活動量
+              <select id="activity">
+                <option value="low">低，室內安靜型</option>
+                <option value="medium" selected>中，日常會玩耍</option>
+                <option value="high">高，活潑好動</option>
+              </select>
+            </label>
+
+            <fieldset class="span-2 feed-only">
+              <legend>健康狀況，可複選</legend>
+              <div class="chip-grid" id="healthGroup">
+                <label><input type="checkbox" value="urinary" /> 泌尿照護</label>
+                <label><input type="checkbox" value="kidney" /> 腎臟疑慮</label>
+                <label><input type="checkbox" value="digestive" /> 腸胃敏感</label>
+                <label><input type="checkbox" value="skin" /> 皮膚毛髮</label>
+                <label><input type="checkbox" value="diabetes" /> 糖尿病疑慮</label>
+                <label><input type="checkbox" value="hairball" /> 毛球困擾</label>
+              </div>
+            </fieldset>
+
+            <fieldset class="span-2 product-only">
+              <legend>想改善的問題，可複選</legend>
+              <div class="chip-grid" id="problemGroup">
+                <label><input type="checkbox" value="joint" /> 骨關節問題</label>
+                <label><input type="checkbox" value="stress" /> 情緒緊張</label>
+                <label><input type="checkbox" value="dental" /> 口腔牙齒</label>
+                <label><input type="checkbox" value="litter_odor" /> 貓砂盆異味</label>
+                <label><input type="checkbox" value="itchy_skin" /> 搔癢掉毛</label>
+                <label><input type="checkbox" value="low_water" /> 喝水太少</label>
+              </div>
+            </fieldset>
+
+            <label class="feed-only">
+              飲食偏好
+              <select id="foodType">
+                <option value="any" selected>乾濕都可以</option>
+                <option value="wet">濕食優先</option>
+                <option value="dry">乾糧優先</option>
+                <option value="mixed">乾濕混合</option>
+              </select>
+            </label>
+
+            <label class="feed-only">
+              避開的蛋白質
+              <select id="avoidProtein">
+                <option value="none" selected>無</option>
+                <option value="chicken">雞肉</option>
+                <option value="fish">魚肉</option>
+                <option value="beef">牛肉</option>
+              </select>
+            </label>
+
+            <button id="submitButton" class="primary-action span-2" type="submit">產生飼料推薦</button>
+          </form>
+        </section>
+
+        <section class="results" aria-live="polite">
+          <div class="results-header">
+            <div>
+              <p class="eyebrow">推薦結果</p>
+              <h2 id="resultTitle">先填問卷，看看適合的飲食與用品方向</h2>
+            </div>
+            <div id="calorieBox" class="calorie-box">
+              <span>每日熱量</span>
+              <strong id="calorieValue">-- kcal</strong>
+            </div>
+          </div>
+
+          <div id="alerts" class="alerts"></div>
+          <div id="guidance" class="guidance"></div>
+          <div id="recommendations" class="recommendations"></div>
+        </section>
+      </div>
+    </main>
+
+    <main id="tracker-view" class="app-view">
+      <div class="tracker-shell">
+        <aside class="tracker-sidebar" aria-label="貓咪清單">
+          <div class="tracker-brand">
+            <div class="brand-mark" aria-hidden="true">糖</div>
+            <div>
+              <h2>貓咪控糖紀錄</h2>
+              <p>血糖、飲食、胰島素、體重與熱量</p>
+            </div>
+          </div>
+
+          <form id="cat-form" class="panel compact-form">
+            <div class="section-heading no-margin">
+              <h2 id="cat-form-title">新增貓咪</h2>
+              <button id="cancel-cat-edit" class="text-button hidden" type="button">取消</button>
+            </div>
+            <label>
+              名字
+              <input id="cat-name" name="name" required autocomplete="off" placeholder="例如：Momo" />
+            </label>
+            <div class="grid-2">
+              <label>
+                年紀
+                <input id="cat-age" name="age" type="number" min="0" step="0.1" required placeholder="歲" />
+              </label>
+              <label>
+                體重
+                <input id="cat-weight" name="weight" type="number" min="0.1" step="0.01" required placeholder="kg" />
+              </label>
+            </div>
+            <label>
+              狀態
+              <select id="cat-condition" name="condition">
+                <option value="adult">成貓 / 已結紮</option>
+                <option value="senior">高齡貓</option>
+                <option value="kitten">幼貓</option>
+                <option value="weightLoss">需要減重</option>
+                <option value="weightGain">需要增重</option>
+              </select>
+            </label>
+            <button id="cat-submit" type="submit" class="primary-button">加入貓咪</button>
+          </form>
+
+          <section class="panel cloud-panel">
+            <div class="section-heading no-margin">
+              <h2>雲端同步</h2>
+              <span id="cloud-status-dot" class="status-dot offline" aria-label="雲端狀態"></span>
+            </div>
+            <label>
+              Supabase URL
+              <input id="supabase-url" autocomplete="off" placeholder="https://xxxxx.supabase.co" />
+            </label>
+            <label>
+              Anon public key
+              <input id="supabase-key" autocomplete="off" placeholder="eyJhbGciOi..." />
+            </label>
+            <div class="cloud-actions">
+              <button id="save-cloud-config" class="ghost-button" type="button">儲存設定</button>
+              <button id="sync-cloud" class="ghost-button" type="button">同步到雲端</button>
+              <button id="load-cloud" class="ghost-button" type="button">從雲端載入</button>
+            </div>
+            <p id="cloud-status" class="cloud-status">尚未設定雲端資料庫</p>
+          </section>
+
+          <section class="cat-list-wrap">
+            <div class="section-heading">
+              <h2>貓咪</h2>
+              <span id="cat-count">0</span>
+            </div>
+            <div id="cat-list" class="cat-list"></div>
+          </section>
+        </aside>
+
+        <section class="tracker-workspace">
+          <div id="empty-state" class="empty-state tracker-empty">
+            <div class="empty-icon" aria-hidden="true">mg/dL</div>
+            <h2>先新增一隻貓咪</h2>
+            <p>之後就能依照時間段記錄血糖、吃了什麼、胰島素劑量與體重變化。</p>
+          </div>
+
+          <div id="dashboard" class="dashboard hidden">
+            <header class="topbar">
+              <div>
+                <p class="eyebrow">目前檢視</p>
+                <h2 id="active-cat-name"></h2>
+                <p id="active-cat-meta"></p>
+              </div>
+              <div class="topbar-actions">
+                <button id="edit-cat" class="ghost-button" type="button">編輯貓咪</button>
+                <button id="delete-cat" class="ghost-button danger-button" type="button">刪除貓咪</button>
+                <button id="export-json" class="ghost-button" type="button">匯出資料</button>
+                <label class="import-button">
+                  匯入資料
+                  <input id="import-json" type="file" accept="application/json" />
+                </label>
+              </div>
+            </header>
+
+            <section class="metrics-grid" aria-label="摘要">
+              <article class="metric-card">
+                <span>建議每日熱量</span>
+                <strong id="calorie-target">0 kcal</strong>
+                <small id="calorie-note"></small>
+              </article>
+              <article class="metric-card">
+                <span>最新血糖</span>
+                <strong id="latest-glucose">尚無</strong>
+                <small id="latest-glucose-time"></small>
+              </article>
+              <article class="metric-card">
+                <span>最新體重</span>
+                <strong id="latest-weight">尚無</strong>
+                <small id="weight-change"></small>
+              </article>
+              <article class="metric-card">
+                <span>今日胰島素</span>
+                <strong id="today-insulin">0 U</strong>
+                <small>以紀錄日期加總</small>
+              </article>
+            </section>
+
+            <section class="content-grid">
+              <form id="record-form" class="panel record-form">
+                <div class="section-heading">
+                  <h2>新增時間段紀錄</h2>
+                  <button id="clear-form" class="text-button" type="button">清空</button>
+                </div>
+                <div class="grid-2">
+                  <label>
+                    日期
+                    <input id="record-date" name="date" type="date" required />
+                  </label>
+                  <label>
+                    時間
+                    <input id="record-time" name="time" type="time" required />
+                  </label>
+                </div>
+                <label>
+                  時間段
+                  <select id="record-period" name="period">
+                    <option value="早餐前">早餐前</option>
+                    <option value="早餐後">早餐後</option>
+                    <option value="午餐前">午餐前</option>
+                    <option value="午餐後">午餐後</option>
+                    <option value="晚餐前">晚餐前</option>
+                    <option value="晚餐後">晚餐後</option>
+                    <option value="睡前">睡前</option>
+                    <option value="其他">其他</option>
+                  </select>
+                </label>
+                <div class="grid-3">
+                  <label>
+                    血糖
+                    <input id="record-glucose" name="glucose" type="number" min="0" step="1" placeholder="mg/dL" />
+                  </label>
+                  <label>
+                    胰島素
+                    <input id="record-insulin" name="insulin" type="number" min="0" step="0.25" placeholder="U" />
+                  </label>
+                  <label>
+                    體重
+                    <input id="record-weight" name="weight" type="number" min="0.1" step="0.01" placeholder="kg" />
+                  </label>
+                </div>
+                <label>
+                  食物內容
+                  <textarea id="record-food" name="food" rows="3" placeholder="例如：處方罐 45g、乾飼料 8g"></textarea>
+                </label>
+                <div class="grid-2">
+                  <label>
+                    估計熱量
+                    <input id="record-calories" name="calories" type="number" min="0" step="1" placeholder="kcal" />
+                  </label>
+                  <label>
+                    備註
+                    <input id="record-note" name="note" placeholder="精神、飲水、嘔吐等" />
+                  </label>
+                </div>
+                <button type="submit" class="primary-button">儲存紀錄</button>
+              </form>
+
+              <section class="panel">
+                <div class="section-heading">
+                  <h2>血糖趨勢</h2>
+                  <select id="range-filter" aria-label="篩選天數">
+                    <option value="7">近 7 天</option>
+                    <option value="14">近 14 天</option>
+                    <option value="30">近 30 天</option>
+                    <option value="all">全部</option>
+                  </select>
+                </div>
+                <div class="chart-wrap">
+                  <canvas id="glucose-chart" width="720" height="320" aria-label="血糖趨勢圖"></canvas>
+                </div>
+                <div class="legend">
+                  <span><i class="dot safe"></i>80-150</span>
+                  <span><i class="dot warning"></i>151-250</span>
+                  <span><i class="dot danger"></i>251+</span>
+                </div>
+              </section>
+            </section>
+
+            <section class="panel records-panel">
+              <div class="section-heading">
+                <h2>紀錄列表</h2>
+                <div class="filters">
+                  <input id="search-records" placeholder="搜尋食物或備註" />
+                  <select id="period-filter" aria-label="篩選時間段">
+                    <option value="all">全部時間段</option>
+                    <option value="早餐前">早餐前</option>
+                    <option value="早餐後">早餐後</option>
+                    <option value="午餐前">午餐前</option>
+                    <option value="午餐後">午餐後</option>
+                    <option value="晚餐前">晚餐前</option>
+                    <option value="晚餐後">晚餐後</option>
+                    <option value="睡前">睡前</option>
+                    <option value="其他">其他</option>
+                  </select>
+                </div>
+              </div>
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>日期時間</th>
+                      <th>時間段</th>
+                      <th>血糖</th>
+                      <th>食物 / 熱量</th>
+                      <th>胰島素</th>
+                      <th>體重</th>
+                      <th>備註</th>
+                      <th></th>
+                    </tr>
+                  </thead>
+                  <tbody id="records-table"></tbody>
+                </table>
+              </div>
+            </section>
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <script src="app.js"></script>
+  </body>
+</html>
