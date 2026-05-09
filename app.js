@@ -563,11 +563,14 @@ const trackerElements = {
   clearForm: $("#clear-form"),
   recordDate: $("#record-date"),
   recordTime: $("#record-time"),
+  extraFoodList: $("#extra-food-list"),
+  addExtraFood: $("#add-extra-food"),
   recordsTable: $("#records-table"),
   rangeFilter: $("#range-filter"),
-  periodFilter: $("#period-filter"),
+  dateFilter: $("#date-filter"),
   searchRecords: $("#search-records"),
   chart: $("#glucose-chart"),
+  recentGlucoseList: $("#recent-glucose-list"),
   exportJson: $("#export-json"),
   importJson: $("#import-json"),
   editCat: $("#edit-cat"),
@@ -655,32 +658,68 @@ async function supabaseRequest(path, options = {}) {
 }
 
 function trackerStateToCloudRows() {
-  const cats = trackerState.cats.map((cat) => ({
-    id: cat.id,
-    name: cat.name,
-    age: cat.age,
-    weight: cat.weight,
-    condition: cat.condition,
-    updated_at: new Date().toISOString()
-  }));
+  const timestamp = new Date().toISOString();
+  const cats = trackerState.cats.map((cat) =>
+    normalizeCloudRow(["id", "name", "age", "weight", "condition", "updated_at"], {
+      id: cat.id || "",
+      name: cat.name || "",
+      age: cat.age,
+      weight: cat.weight,
+      condition: cat.condition || "",
+      updated_at: timestamp
+    })
+  );
   const records = trackerState.cats.flatMap((cat) =>
-    (cat.records || []).map((record) => ({
-      id: record.id,
-      cat_id: cat.id,
-      date: record.date || null,
-      time: record.time || null,
-      period: record.period || null,
-      glucose: record.glucose,
-      insulin: record.insulin,
-      weight: record.weight,
-      food: record.food || "",
-      calories: record.calories,
-      note: record.note || "",
-      updated_at: new Date().toISOString()
-    }))
+    (cat.records || []).map((record) =>
+      normalizeCloudRow(
+        [
+          "id",
+          "cat_id",
+          "date",
+          "time",
+          "period",
+          "glucose",
+          "insulin",
+          "weight",
+          "food_brand",
+          "food_kind",
+          "food_grams",
+          "food_extra",
+          "food",
+          "calories",
+          "note",
+          "updated_at"
+        ],
+        {
+          id: record.id || "",
+          cat_id: cat.id || "",
+          date: record.date || null,
+          time: record.time || null,
+          period: record.period || null,
+          glucose: record.glucose,
+          insulin: record.insulin,
+          weight: record.weight,
+          food_brand: record.foodBrand || "",
+          food_kind: record.foodKind || "",
+          food_grams: record.foodGrams,
+          food_extra: serializeExtraFoods(record.extraFoods || record.foodExtra),
+          food: record.food || "",
+          calories: record.calories,
+          note: record.note || "",
+          updated_at: timestamp
+        }
+      )
+    )
   );
 
   return { cats, records };
+}
+
+function normalizeCloudRow(keys, row) {
+  return keys.reduce((result, key) => {
+    result[key] = row[key] === undefined ? null : row[key];
+    return result;
+  }, {});
 }
 
 async function syncTrackerToCloud({ quiet = false } = {}) {
@@ -693,19 +732,27 @@ async function syncTrackerToCloud({ quiet = false } = {}) {
   setCloudStatus("正在同步到雲端...", "syncing");
 
   if (cats.length) {
-    await supabaseRequest("cats?on_conflict=id", {
-      method: "POST",
-      headers: { Prefer: "resolution=merge-duplicates,return=minimal" },
-      body: JSON.stringify(cats)
-    });
+    try {
+      await supabaseRequest("cats?on_conflict=id", {
+        method: "POST",
+        headers: { Prefer: "resolution=merge-duplicates,return=minimal" },
+        body: JSON.stringify(cats)
+      });
+    } catch (error) {
+      throw new Error(`貓咪資料同步失敗：${error.message}`);
+    }
   }
 
   if (records.length) {
-    await supabaseRequest("cat_records?on_conflict=id", {
-      method: "POST",
-      headers: { Prefer: "resolution=merge-duplicates,return=minimal" },
-      body: JSON.stringify(records)
-    });
+    try {
+      await supabaseRequest("cat_records?on_conflict=id", {
+        method: "POST",
+        headers: { Prefer: "resolution=merge-duplicates,return=minimal" },
+        body: JSON.stringify(records)
+      });
+    } catch (error) {
+      throw new Error(`紀錄資料同步失敗：${error.message}`);
+    }
   }
 
   setCloudStatus(`已同步 ${cats.length} 隻貓、${records.length} 筆紀錄到雲端`, "online");
@@ -731,6 +778,10 @@ async function loadTrackerFromCloud() {
       glucose: numberOrNull(record.glucose),
       insulin: numberOrNull(record.insulin),
       weight: numberOrNull(record.weight),
+      foodBrand: record.food_brand || "",
+      foodKind: record.food_kind || "",
+      foodGrams: numberOrNull(record.food_grams),
+      extraFoods: normalizeExtraFoods(record.food_extra),
       food: record.food || "",
       calories: numberOrNull(record.calories),
       note: record.note || ""
@@ -838,6 +889,78 @@ function glucoseClass(value) {
   return "danger";
 }
 
+function normalizeExtraFoods(value) {
+  if (!value) return [];
+  if (Array.isArray(value)) return value;
+  if (typeof value === "string") {
+    try {
+      const parsed = JSON.parse(value);
+      return Array.isArray(parsed) ? parsed : [{ foodBrand: value }];
+    } catch {
+      return [{ foodBrand: value }];
+    }
+  }
+  return [];
+}
+
+function serializeExtraFoods(value) {
+  const items = normalizeExtraFoods(value).filter((item) => {
+    return (
+      item.foodBrand ||
+      item.foodKind ||
+      (item.foodGrams !== null && item.foodGrams !== undefined && item.foodGrams !== "") ||
+      (item.calories !== null && item.calories !== undefined && item.calories !== "") ||
+      item.food
+    );
+  });
+  return items.length ? JSON.stringify(items) : "";
+}
+
+function foodItemSummary(item) {
+  const parts = [];
+  if (item.foodBrand) parts.push(item.foodBrand);
+  if (item.foodKind) parts.push(item.foodKind);
+  if (item.foodGrams !== null && item.foodGrams !== undefined && item.foodGrams !== "") {
+    parts.push(`${formatNumber(item.foodGrams, 0)}g`);
+  }
+  if (item.calories !== null && item.calories !== undefined && item.calories !== "") {
+    parts.push(`${formatNumber(item.calories, 0)} kcal`);
+  }
+  if (item.food) parts.push(item.food);
+  return parts.join(" / ");
+}
+
+function foodSummary(record) {
+  const parts = [];
+  if (record.foodBrand) parts.push(record.foodBrand);
+  if (record.foodKind) parts.push(record.foodKind);
+  if (record.foodGrams !== null && record.foodGrams !== undefined && record.foodGrams !== "") {
+    parts.push(`${formatNumber(record.foodGrams, 0)}g`);
+  }
+  if (record.food) parts.push(record.food);
+  normalizeExtraFoods(record.extraFoods || record.foodExtra).forEach((item) => {
+    const summary = foodItemSummary(item);
+    if (summary) parts.push(`＋${summary}`);
+  });
+  return parts.join(" / ");
+}
+
+function recordTimestamp(record) {
+  return new Date(`${record.date}T${record.time || "00:00"}`).getTime();
+}
+
+function formatRecordDateTime(record) {
+  const date = record.date || "";
+  const time = record.time || "--:--";
+  return `${date} ${time}`;
+}
+
+function formatChartTimeLabel(record) {
+  const date = record.date ? record.date.slice(5) : "";
+  const time = record.time || "--:--";
+  return `${date} ${time}`;
+}
+
 function sortedTrackerRecords(cat) {
   return [...(cat.records || [])].sort((a, b) => {
     return `${b.date}T${b.time}`.localeCompare(`${a.date}T${a.time}`);
@@ -852,6 +975,7 @@ function renderTracker() {
   if (!activeCat) return;
   renderTrackerDashboard(activeCat);
   renderTrackerRecords(activeCat);
+  renderRecentGlucose(activeCat);
   drawTrackerChart(activeCat);
 }
 
@@ -907,18 +1031,18 @@ function renderTrackerDashboard(cat) {
 function renderTrackerRecords(cat) {
   if (!cat) return;
   const search = trackerElements.searchRecords.value.trim().toLowerCase();
-  const period = trackerElements.periodFilter.value;
+  const selectedDate = trackerElements.dateFilter.value;
   const records = sortedTrackerRecords(cat).filter((record) => {
-    const matchesPeriod = period === "all" || record.period === period;
-    const targetText = `${record.food || ""} ${record.note || ""}`.toLowerCase();
-    return matchesPeriod && (!search || targetText.includes(search));
+    const matchesDate = !selectedDate || record.date === selectedDate;
+    const targetText = `${foodSummary(record)} ${record.note || ""}`.toLowerCase();
+    return matchesDate && (!search || targetText.includes(search));
   });
 
   trackerElements.recordsTable.innerHTML = "";
   if (!records.length) {
     trackerElements.recordsTable.innerHTML = `
       <tr>
-        <td colspan="8" class="muted">尚無符合條件的紀錄</td>
+        <td colspan="7" class="muted">尚無符合條件的紀錄</td>
       </tr>
     `;
     return;
@@ -928,9 +1052,8 @@ function renderTrackerRecords(cat) {
     const row = document.createElement("tr");
     row.innerHTML = `
       <td>${record.date}<br><span class="muted">${record.time}</span></td>
-      <td>${escapeHtml(record.period)}</td>
       <td>${record.glucose !== null ? `<span class="badge ${glucoseClass(record.glucose)}">${record.glucose} mg/dL</span>` : '<span class="muted">-</span>'}</td>
-      <td>${escapeHtml(record.food || "-")}<br><span class="muted">${record.calories !== null ? `${record.calories} kcal` : "未填熱量"}</span></td>
+      <td>${escapeHtml(foodSummary(record) || "-")}<br><span class="muted">${record.calories !== null ? `${record.calories} kcal` : "未填熱量"}</span></td>
       <td>${record.insulin !== null ? `${record.insulin} U` : '<span class="muted">-</span>'}</td>
       <td>${record.weight !== null ? `${record.weight} kg` : '<span class="muted">-</span>'}</td>
       <td>${escapeHtml(record.note || "-")}</td>
@@ -943,6 +1066,31 @@ function renderTrackerRecords(cat) {
   });
 }
 
+function renderRecentGlucose(cat) {
+  if (!trackerElements.recentGlucoseList) return;
+  const now = Date.now();
+  const twoDaysAgo = now - 2 * 24 * 60 * 60 * 1000;
+  const records = sortedTrackerRecords(cat)
+    .filter((record) => record.glucose !== null && recordTimestamp(record) >= twoDaysAgo)
+    .slice(0, 8);
+
+  if (!records.length) {
+    trackerElements.recentGlucoseList.innerHTML = `<p class="muted">近兩天尚無血糖紀錄</p>`;
+    return;
+  }
+
+  trackerElements.recentGlucoseList.innerHTML = records
+    .map(
+      (record) => `
+        <article class="recent-glucose-card">
+          <strong class="badge ${glucoseClass(record.glucose)}">${record.glucose} mg/dL</strong>
+          <span>${formatRecordDateTime(record)}</span>
+        </article>
+      `
+    )
+    .join("");
+}
+
 function drawTrackerChart(cat) {
   if (!cat) return;
   const ctx = trackerElements.chart.getContext("2d");
@@ -951,8 +1099,8 @@ function drawTrackerChart(cat) {
     .filter((record) => record.glucose !== null)
     .reverse()
     .filter((record) => {
-      if (range === "all") return true;
-      const recordTime = new Date(`${record.date}T${record.time || "00:00"}`).getTime();
+    if (range === "all") return true;
+      const recordTime = recordTimestamp(record);
       const minTime = Date.now() - Number(range) * 24 * 60 * 60 * 1000;
       return recordTime >= minTime;
     });
@@ -1017,7 +1165,7 @@ function drawTrackerChart(cat) {
   ctx.textAlign = "center";
   points.forEach((point, index) => {
     if (index % Math.ceil(points.length / 6) === 0 || index === points.length - 1) {
-      ctx.fillText(point.record.date.slice(5), point.x, height - 24);
+      ctx.fillText(formatChartTimeLabel(point.record), point.x, height - 24);
     }
   });
   ctx.textAlign = "left";
@@ -1033,14 +1181,85 @@ function conditionLabel(condition) {
   }[condition] || "成貓 / 已結紮";
 }
 
+function renderExtraFoodFields(items = []) {
+  if (!trackerElements.extraFoodList) return;
+  trackerElements.extraFoodList.innerHTML = "";
+  normalizeExtraFoods(items).forEach((item) => addExtraFoodFields(item));
+}
+
+function addExtraFoodFields(item = {}) {
+  if (!trackerElements.extraFoodList) return;
+  const field = document.createElement("div");
+  field.className = "extra-food-item";
+  field.innerHTML = `
+    <div class="section-heading no-margin">
+      <h3>其他食物</h3>
+      <button class="text-button" type="button" data-action="remove-extra-food">刪除</button>
+    </div>
+    <div class="grid-2">
+      <label>
+        品牌 / 食物名稱
+        <input name="extraFoodBrand" placeholder="例如：雞胸肉" value="${escapeHtml(item.foodBrand || "")}" />
+      </label>
+      <label>
+        類型
+        <select name="extraFoodKind">
+          <option value="" ${!item.foodKind ? "selected" : ""}>未選擇</option>
+          <option value="乾飼料" ${item.foodKind === "乾飼料" ? "selected" : ""}>乾飼料</option>
+          <option value="罐頭" ${item.foodKind === "罐頭" ? "selected" : ""}>罐頭</option>
+          <option value="鮮食" ${item.foodKind === "鮮食" ? "selected" : ""}>鮮食</option>
+          <option value="零食" ${item.foodKind === "零食" ? "selected" : ""}>零食</option>
+          <option value="其他" ${item.foodKind === "其他" ? "selected" : ""}>其他</option>
+        </select>
+      </label>
+    </div>
+    <div class="grid-2">
+      <label>
+        克數
+        <input name="extraFoodGrams" type="number" min="0" step="1" placeholder="g" value="${item.foodGrams ?? ""}" />
+      </label>
+      <label>
+        估計熱量
+        <input name="extraFoodCalories" type="number" min="0" step="1" placeholder="kcal" value="${item.calories ?? ""}" />
+      </label>
+    </div>
+    <label>
+      補充內容
+      <textarea name="extraFoodNote" rows="2" placeholder="例如：分兩次吃完、加水 20ml">${escapeHtml(item.food || "")}</textarea>
+    </label>
+  `;
+  trackerElements.extraFoodList.appendChild(field);
+}
+
+function collectExtraFoods(formData) {
+  const brands = formData.getAll("extraFoodBrand");
+  const kinds = formData.getAll("extraFoodKind");
+  const grams = formData.getAll("extraFoodGrams");
+  const calories = formData.getAll("extraFoodCalories");
+  const notes = formData.getAll("extraFoodNote");
+  return brands
+    .map((brand, index) => ({
+      foodBrand: brand.trim(),
+      foodKind: kinds[index] || "",
+      foodGrams: numberOrNull(grams[index]),
+      calories: numberOrNull(calories[index]),
+      food: notes[index]?.trim() || ""
+    }))
+    .filter((item) => item.foodBrand || item.foodKind || item.foodGrams !== null || item.calories !== null || item.food);
+}
+
 function fillRecordForm(record) {
   editingRecordId = record.id;
   trackerElements.recordDate.value = record.date;
   trackerElements.recordTime.value = record.time;
-  $("#record-period").value = record.period;
+  $("#record-period").value = record.period || "其他";
   $("#record-glucose").value = record.glucose ?? "";
   $("#record-insulin").value = record.insulin ?? "";
   $("#record-weight").value = record.weight ?? "";
+  $("#record-food-brand").value = record.foodBrand || "";
+  $("#record-food-kind").value = record.foodKind || "";
+  $("#record-food-grams").value = record.foodGrams ?? "";
+  renderExtraFoodFields(record.extraFoods || record.foodExtra);
   $("#record-food").value = record.food || "";
   $("#record-calories").value = record.calories ?? "";
   $("#record-note").value = record.note || "";
@@ -1051,8 +1270,10 @@ function fillRecordForm(record) {
 function resetRecordForm() {
   editingRecordId = null;
   trackerElements.recordForm.reset();
+  renderExtraFoodFields();
   trackerElements.recordDate.value = today;
   trackerElements.recordTime.value = new Date().toTimeString().slice(0, 5);
+  $("#record-period").value = "其他";
   trackerElements.recordForm.querySelector("button[type='submit']").textContent = "儲存紀錄";
 }
 
@@ -1122,10 +1343,14 @@ trackerElements.recordForm.addEventListener("submit", (event) => {
     id: editingRecordId || uid("record"),
     date: formData.get("date"),
     time: formData.get("time"),
-    period: formData.get("period"),
+    period: formData.get("period") || "其他",
     glucose: numberOrNull(formData.get("glucose")),
     insulin: numberOrNull(formData.get("insulin")),
     weight: numberOrNull(formData.get("weight")),
+    foodBrand: formData.get("foodBrand").trim(),
+    foodKind: formData.get("foodKind"),
+    foodGrams: numberOrNull(formData.get("foodGrams")),
+    extraFoods: collectExtraFoods(formData),
     food: formData.get("food").trim(),
     calories: numberOrNull(formData.get("calories")),
     note: formData.get("note").trim()
@@ -1167,6 +1392,12 @@ trackerElements.recordsTable.addEventListener("click", (event) => {
 });
 
 trackerElements.clearForm.addEventListener("click", resetRecordForm);
+trackerElements.addExtraFood.addEventListener("click", () => addExtraFoodFields());
+trackerElements.extraFoodList.addEventListener("click", (event) => {
+  const button = event.target.closest("button[data-action='remove-extra-food']");
+  if (!button) return;
+  button.closest(".extra-food-item")?.remove();
+});
 trackerElements.cancelCatEdit.addEventListener("click", resetCatForm);
 trackerElements.editCat.addEventListener("click", () => {
   const cat = getActiveTrackerCat();
@@ -1188,7 +1419,7 @@ trackerElements.deleteCat.addEventListener("click", () => {
   renderTracker();
 });
 trackerElements.rangeFilter.addEventListener("change", () => drawTrackerChart(getActiveTrackerCat()));
-trackerElements.periodFilter.addEventListener("change", () => renderTrackerRecords(getActiveTrackerCat()));
+trackerElements.dateFilter.addEventListener("change", () => renderTrackerRecords(getActiveTrackerCat()));
 trackerElements.searchRecords.addEventListener("input", () => renderTrackerRecords(getActiveTrackerCat()));
 trackerElements.saveCloudConfig.addEventListener("click", () => {
   const config = getCloudConfig();
