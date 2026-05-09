@@ -3,14 +3,14 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>CatFit Feed | 貓咪營養與控糖管理</title>
+    <title>Taily</title>
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body class="is-food-mode">
     <header class="app-header">
       <div>
-        <p class="eyebrow">CatFit Feed</p>
-        <h1>貓咪營養與控糖管理</h1>
+        <p class="eyebrow">Taily</p>
+        <h1>Taily</h1>
       </div>
       <nav class="app-tabs" aria-label="主要功能">
         <button class="app-tab active" type="button" data-app-view="recommender">推薦助手</button>
@@ -272,7 +272,7 @@
             <section class="content-grid">
               <form id="record-form" class="panel record-form">
                 <div class="section-heading">
-                  <h2>新增時間段紀錄</h2>
+                  <h2>新增紀錄</h2>
                   <button id="clear-form" class="text-button" type="button">清空</button>
                 </div>
                 <div class="grid-2">
@@ -285,69 +285,95 @@
                     <input id="record-time" name="time" type="time" required />
                   </label>
                 </div>
-                <label>
-                  時間段
-                  <select id="record-period" name="period">
-                    <option value="早餐前">早餐前</option>
-                    <option value="早餐後">早餐後</option>
-                    <option value="午餐前">午餐前</option>
-                    <option value="午餐後">午餐後</option>
-                    <option value="晚餐前">晚餐前</option>
-                    <option value="晚餐後">晚餐後</option>
-                    <option value="睡前">睡前</option>
-                    <option value="其他">其他</option>
-                  </select>
-                </label>
-                <div class="grid-3">
+                <input id="record-period" name="period" type="hidden" value="其他" />
+                <fieldset class="record-section">
+                  <legend>進食紀錄</legend>
+                  <div class="grid-2">
+                    <label>
+                      品牌 / 食物名稱
+                      <input id="record-food-brand" name="foodBrand" placeholder="例如：皇家糖尿病處方罐" />
+                    </label>
+                    <label>
+                      類型
+                      <select id="record-food-kind" name="foodKind">
+                        <option value="">未選擇</option>
+                        <option value="乾飼料">乾飼料</option>
+                        <option value="罐頭">罐頭</option>
+                        <option value="鮮食">鮮食</option>
+                        <option value="零食">零食</option>
+                        <option value="其他">其他</option>
+                      </select>
+                    </label>
+                  </div>
+                  <div class="grid-2">
+                    <label>
+                      克數
+                      <input id="record-food-grams" name="foodGrams" type="number" min="0" step="1" placeholder="g" />
+                    </label>
+                    <label>
+                      估計熱量
+                      <input id="record-calories" name="calories" type="number" min="0" step="1" placeholder="kcal" />
+                    </label>
+                  </div>
                   <label>
-                    血糖
-                    <input id="record-glucose" name="glucose" type="number" min="0" step="1" placeholder="mg/dL" />
+                    補充內容
+                    <textarea id="record-food" name="food" rows="2" placeholder="例如：分兩次吃完、加水 20ml"></textarea>
                   </label>
+                  <div id="extra-food-list" class="extra-food-list"></div>
+                  <button id="add-extra-food" class="ghost-button add-food-button" type="button">＋新增</button>
+                </fieldset>
+                <fieldset class="record-section">
+                  <legend>紀錄血糖</legend>
+                  <div class="grid-2">
+                    <label>
+                      血糖
+                      <input id="record-glucose" name="glucose" type="number" min="0" step="1" placeholder="mg/dL" />
+                    </label>
+                    <label>
+                      體重
+                      <input id="record-weight" name="weight" type="number" min="0.1" step="0.01" placeholder="kg" />
+                    </label>
+                  </div>
+                </fieldset>
+                <fieldset class="record-section">
+                  <legend>紀錄胰島素</legend>
                   <label>
                     胰島素
                     <input id="record-insulin" name="insulin" type="number" min="0" step="0.25" placeholder="U" />
                   </label>
-                  <label>
-                    體重
-                    <input id="record-weight" name="weight" type="number" min="0.1" step="0.01" placeholder="kg" />
-                  </label>
-                </div>
+                </fieldset>
                 <label>
-                  食物內容
-                  <textarea id="record-food" name="food" rows="3" placeholder="例如：處方罐 45g、乾飼料 8g"></textarea>
+                  備註
+                  <input id="record-note" name="note" placeholder="精神、飲水、嘔吐等" />
                 </label>
-                <div class="grid-2">
-                  <label>
-                    估計熱量
-                    <input id="record-calories" name="calories" type="number" min="0" step="1" placeholder="kcal" />
-                  </label>
-                  <label>
-                    備註
-                    <input id="record-note" name="note" placeholder="精神、飲水、嘔吐等" />
-                  </label>
-                </div>
                 <button type="submit" class="primary-button">儲存紀錄</button>
               </form>
 
-              <section class="panel">
-                <div class="section-heading">
-                  <h2>血糖趨勢</h2>
-                  <select id="range-filter" aria-label="篩選天數">
-                    <option value="7">近 7 天</option>
-                    <option value="14">近 14 天</option>
-                    <option value="30">近 30 天</option>
-                    <option value="all">全部</option>
-                  </select>
-                </div>
-                <div class="chart-wrap">
-                  <canvas id="glucose-chart" width="720" height="320" aria-label="血糖趨勢圖"></canvas>
-                </div>
-                <div class="legend">
-                  <span><i class="dot safe"></i>80-150</span>
-                  <span><i class="dot warning"></i>151-250</span>
-                  <span><i class="dot danger"></i>251+</span>
-                </div>
-              </section>
+              <div class="charts-column">
+                <section class="panel">
+                  <div class="section-heading">
+                    <h2>血糖趨勢</h2>
+                    <select id="range-filter" aria-label="篩選天數">
+                      <option value="7">近 7 天</option>
+                      <option value="14">近 14 天</option>
+                      <option value="30">近 30 天</option>
+                      <option value="all">全部</option>
+                    </select>
+                  </div>
+                  <div class="chart-wrap">
+                    <canvas id="glucose-chart" width="720" height="320" aria-label="血糖趨勢圖"></canvas>
+                  </div>
+                  <div class="legend">
+                    <span><i class="dot safe"></i>80-150</span>
+                    <span><i class="dot warning"></i>151-250</span>
+                    <span><i class="dot danger"></i>251+</span>
+                  </div>
+                  <div class="recent-glucose-panel">
+                    <h3>近兩天血糖紀錄</h3>
+                    <div id="recent-glucose-list" class="recent-glucose-list"></div>
+                  </div>
+                </section>
+              </div>
             </section>
 
             <section class="panel records-panel">
@@ -355,17 +381,7 @@
                 <h2>紀錄列表</h2>
                 <div class="filters">
                   <input id="search-records" placeholder="搜尋食物或備註" />
-                  <select id="period-filter" aria-label="篩選時間段">
-                    <option value="all">全部時間段</option>
-                    <option value="早餐前">早餐前</option>
-                    <option value="早餐後">早餐後</option>
-                    <option value="午餐前">午餐前</option>
-                    <option value="午餐後">午餐後</option>
-                    <option value="晚餐前">晚餐前</option>
-                    <option value="晚餐後">晚餐後</option>
-                    <option value="睡前">睡前</option>
-                    <option value="其他">其他</option>
-                  </select>
+                  <input id="date-filter" type="date" aria-label="選擇日期" />
                 </div>
               </div>
               <div class="table-wrap">
@@ -373,7 +389,6 @@
                   <thead>
                     <tr>
                       <th>日期時間</th>
-                      <th>時間段</th>
                       <th>血糖</th>
                       <th>食物 / 熱量</th>
                       <th>胰島素</th>
@@ -391,6 +406,6 @@
       </div>
     </main>
 
-    <script src="app.js"></script>
+    <script src="app.js?v=20260509-2"></script>
   </body>
 </html>
