@@ -16,11 +16,27 @@ create table if not exists cat_records (
   glucose numeric,
   insulin numeric,
   weight numeric,
+  food_brand text,
+  food_kind text,
+  food_grams numeric,
+  food_extra text,
   food text,
   calories numeric,
   note text,
   updated_at timestamptz default now()
 );
+
+alter table if exists cat_records
+add column if not exists food_brand text;
+
+alter table if exists cat_records
+add column if not exists food_kind text;
+
+alter table if exists cat_records
+add column if not exists food_grams numeric;
+
+alter table if exists cat_records
+add column if not exists food_extra text;
 
 alter table cats enable row level security;
 alter table cat_records enable row level security;
