@@ -1,26 +1,37 @@
 # Taily
 
-A personal pet wellness tracking project focused on glucose monitoring, food recommendations, and health management.
+Taily is a pet wellness and chronic care management platform designed to help pet owners manage daily health records, glucose monitoring, feeding routines, insulin tracking, and personalized care recommendations through a lightweight and centralized workflow.
+
+Built as a self-use MVP, the project focuses on validating usability, workflow efficiency, and long-term pet health management needs before expanding into a broader wellness platform.
 
 ---
 
-## MVP Goal
+## MVP Goals
 
-This MVP is currently being developed and tested for personal use to validate daily workflows, usability, and health tracking needs before expanding into a broader platform.
-
-The goal is to create a simple and accessible tool that helps pet owners better manage their pets’ daily health records and care routines.
+- Simplify daily pet health tracking workflows
+- Improve consistency in chronic care management
+- Reduce friction caused by scattered tracking tools
+- Provide contextual health tracking through feeding, glucose, and insulin records
+- Explore personalized recommendation workflows for food, supplements, and pet care products
 
 ---
 
 ## Current Features
 
+- Multi-pet management
 - Pet profile management
-- Glucose tracking records
-- Food recommendation
-- Supplement recommendation
-- Basic health management workflow
-- Cloud-based data storage with Supabase
-- Web deployment via Netlify
+- Feeding records
+- Multiple food item support
+- Glucose tracking
+- Insulin tracking
+- Historical health records
+- Date-based record search
+- Glucose trend visualization
+- Recent glucose summary cards
+- Personalized food recommendations
+- Supplement recommendations
+- Pet care product recommendations
+- Cloud-based data persistence with Supabase
 
 ---
 
@@ -42,6 +53,20 @@ The goal is to create a simple and accessible tool that helps pet owners better 
 
 ---
 
+## Product Documentation
+
+Product planning and PRD documentation are maintained in Notion.
+
+- Product Requirement Document (PRD)
+- MVP Planning
+- Product Workflow
+- Feature Roadmap
+- Iteration Notes
+
+[View Product Documentation](你的 Notion Link)
+
+---
+
 ## Project Structure
 
 ```text
@@ -49,7 +74,8 @@ The goal is to create a simple and accessible tool that helps pet owners better 
 ├── index.html
 ├── styles.css
 ├── app.js
-└── supabase-schema.sql
+├── supabase-schema.sql
+└── docs/
 ```
 
 ---
@@ -58,24 +84,28 @@ The goal is to create a simple and accessible tool that helps pet owners better 
 
 Built as a lightweight MVP using vanilla JavaScript and Supabase for rapid product validation.
 
-Currently focused on:
+Current development focuses on:
+
 - workflow testing
 - usability validation
-- daily health tracking experience
-- identifying pain points in pet care management
+- chronic care management workflows
+- recommendation logic validation
+- health data organization
+- identifying pain points in daily pet care management
 
 ---
 
 ## Future Plans
 
 - User authentication
-- Multi-pet management
-- Health dashboard
 - Reminder system
-- Data visualization
+- Improved dashboard
+- Advanced health visualization
 - AI-assisted recommendation system
+- Smart health pattern detection
+- Veterinary collaboration workflows
 - Mobile responsive optimization
-- Expanded pet wellness support beyond cats
+- Expanded wellness support beyond cats
 
 ---
 
